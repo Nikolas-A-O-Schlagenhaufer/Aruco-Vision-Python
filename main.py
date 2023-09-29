@@ -9,7 +9,7 @@ def center(corners):
          corners[2][0] + corners[3][0])/4
     y = (corners[0][1] + corners[1][1] +
          corners[2][1] + corners[3][1])/4
-    return (x, y)
+    return np.array([int(x), int(y)], dtype=np.uint16)
 
 
 blank_frame = np.ones((480, 640, 3), dtype=np.uint8)
@@ -30,8 +30,7 @@ while True:
     if np.all(ids):
         image = aruco.drawDetectedMarkers(frame, corners, ids)
         marker_center = center(corners[0][0])
-        blank_frame[int(marker_center[1]), int(
-            marker_center[0])] = [255, 255, 255]
+        blank_frame[marker_center[1], marker_center[0]] = [255, 255, 255]
         cv2.imshow('Blank', blank_frame)
         cv2.imshow('Display', image)
     else:
