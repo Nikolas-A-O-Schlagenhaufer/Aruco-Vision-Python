@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 import cv2.aruco as aruco
-import time
-import matplotlib.pyplot as plt
+import requests
+import os
 
 
 def center(aruco):
@@ -14,20 +14,21 @@ def center(aruco):
     return np.array([int(x), int(y)], dtype=np.uint16)
 
 
-def CalculaLinha(centers):
-    m = (centers[1][1] - centers[0][1])/(centers[1][0] - centers[0][0])
-    b = centers[0][1] - m*centers[0][0]
-    return m, b
-
-
-blank_frame = np.ones((480, 640, 3), dtype=np.uint8)
+# blank_frame = np.ones((480, 640, 3), dtype=np.uint8)
+blank_frame = np.ones((1080, 1920, 3), dtype=np.uint8)
 screen_start_center = np.array([0,0], dtype=np.uint16)
+track = []
 
 # Aruco detection
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
+url = "http://10.79.225.241:8080/shot.jpg"
 
 while True:
-    _, frame = cap.read()
+    # _, frame = cap.read()
+
+    img_resp = requests.get(url)
+    img_arr = np.array(bytearray(img_resp.content), dtype=np.uint8) 
+    frame = cv2.imdecode(img_arr, -1) 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_250)
     parameters = aruco.DetectorParameters()
@@ -35,24 +36,6 @@ while True:
     corners, ids, _ = detector.detectMarkers(gray)
     # posições dos cantos do marcador, número do marcador
     # ordem dos cantos CE, CD, BD, BE
-
-    # if np.all(ids):
-    #     # for i in range(len(ids)):
-    #     #     print('ID: ', ids[i], f'Center: {center(corners[i][0])}')
-    #     image = aruco.drawDetectedMarkers(frame, corners, ids)
-    #     # marker_center = center(corners[0][0])
-    #     if len(corners) > 1:
-    #         centers = [center(corners[0][0]), center(corners[1][0])]
-    #         m, b = CalculaLinha(centers)
-    #         print(f"m: {m}, b: {b}")
-    #     # blank_frame[marker_center[1], marker_center[0]] = [255, 255, 255]
-    #     # cv2.imshow('Blank', blank_frame)
-    #     cv2.imshow('Display', image)
-        
-    # else:
-    #     display = frame
-    #     # cv2.imshow('Blank', blank_frame)
-    #     cv2.imshow('Display', display)
 
     if ids is not None and len(ids) >= 2:
         for i in range(4):
@@ -70,22 +53,30 @@ while True:
                 marker1_center = np.mean(marker1_corners, axis=0).astype(int)
                 marker2_center = np.mean(marker2_corners, axis=0).astype(int)
                 marker5_center = np.mean(marker5_corners, axis=0).astype(int)
+                track.append(marker5_center)
                 marker0_center = np.mean(marker0_corners, axis=0).astype(int)
 
                 # Calculate the distance between the centers of the two markers
-                distance = np.linalg.norm(marker5_center - screen_start_center)
+                distance = np.linalg.norm(marker5_center - marker0_center)
 
                 # Draw a line connecting the centers of the detected ArUco markers
-                cv2.line(frame, tuple(marker1_center), tuple(marker2_center), (0, 255, 0), 2)
-                cv2.line(frame, tuple(marker5_center), tuple(screen_start_center), (255, 0, 0), 2)
+                # cv2.line(frame, tuple(marker1_center), tuple(marker2_center), (0, 255, 0), 2)
+                # cv2.line(frame, tuple(marker5_center), tuple(marker0_center), (255, 0, 0), 2)
 
                 # Display the distance between the markers
-                cv2.putText(frame, f"Distance: {distance:.2f} pixels", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                # cv2.putText(frame, f"Distance: {distance:.2f} pixels", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+                # Draw the centers of marker 5 in the frame
+                for point in track:
+                    cv2.circle(frame, tuple(point), 5, (0, 0, 255), -1)
             except:
                 pass
 
+        
+
 
     cv2.imshow('Display', frame)
+    # cv2.imshow('Tracking', blank_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
@@ -94,5 +85,14 @@ while True:
 
     
 
-cap.release()
+# cap.release()
 cv2.destroyAllWindows()
+
+# save blank frame to img
+files = os.listdir('trackings')
+if len(files) == 0:
+    value = 0
+else:
+    last_file = files[-1]
+    value = int(last_file.split('-')[1].split('.')[0]) + 1
+cv2.imwrite(f"trackings/tracking-{value}.png", frame)
