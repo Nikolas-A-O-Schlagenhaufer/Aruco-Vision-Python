@@ -127,6 +127,8 @@ cap.release()
 cv2.destroyAllWindows()
 
 # save blank frame to img
+if not os.path.exists('trackings'):
+    os.makedirs('trackings')
 files = os.listdir('trackings')
 if len(files) == 0:
     value = 0
