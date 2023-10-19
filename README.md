@@ -1,5 +1,12 @@
 # Aruco-Vision-Python
 
-Libraries to install for the project:
+Para instalar as dependências, execute o seguinte comando:
 
-pip install opencv-python
+```pip install -r requirements.txt```
+
+Para rodar o código, execute o seguinte comando:
+
+```python main.py```
+
+Para finalizar o código, clicar o botão "q" do teclado. A última
+imagem capturada ficará salva na pasta trackings.
